@@ -10,15 +10,17 @@ import time
 
 tim         = Timer()
 PWR_led      = Pin(25, Pin.OUT)
+__on_debug__ = True
 
-Humidity_Low_Threshold =10
-Humidity_High_Threshold=60
+HUMIDITY_LOW_THRESHOLD =50
+HUMIDITY_HIGH_THRESHOLD=60
+
 humidity_sensor=ADC(26) #ADC0  
-buzzer=PWM(Pin(16))
-Vsys=ADC(3) #Measure power supply
-#Pump=PWM(Pin(12))
-Pump=Pin(12, Pin.OUT)
+buzzer=PWM(Pin(16))     #Buzzer
+Vsys=ADC(3)             #Measure power supply
+Pump=Pin(12, Pin.OUT)   #Pump water
 Shower_Time=False
+Water_Level=Pin(19, Pin.IN)
 
 tones = {
 "B0": 31,
@@ -112,10 +114,15 @@ tones = {
 "DS8": 4978
 }
 
-Start_song = ["G4","P","AS4","P","C5","C5","P","G4",
+#Song tuples
+Start_song = ("G4","P","AS4","P","C5","C5","P","G4",
               "P","AS4","P","CS5","C5","C5","C5","P",
               "G4", "P","AS4","P","C5","C5","P",
-              "AS4","P","G4","G4","G4","G4"]
+              "AS4","P","G4","G4","G4","G4")
+Low_Battery=("D4","A3","F3","P")
+OK_Battery=("D4","FS4","A4","D5")
+Low_Water_Level=("B4","D5","F5","B5","A5","G5")
+
 #Start_song = ["G3","D4","B3","G4","D5","B4","G5","D6","B5","G6"]
 #Start_song = ["G3","G3","D4","D4","AS3","AS3","AS3","A3","G3","AS3","A3","G3","FS3","A3",
 #              "D3","D3"]
@@ -129,10 +136,15 @@ def playtone(frequency):
     buzzer.duty_u16(2000)
     buzzer.freq(frequency)
 
+
 def b_pause():
     buzzer.duty_u16(0)
 
+
 def playsong(mysong):
+    """
+    
+    """    
     for i in range(len(mysong)):
         if (mysong[i] == "P"):
             b_pause()
@@ -142,40 +154,68 @@ def playsong(mysong):
     b_pause()
 
 
-"""
+def Voltage_System_Measurement():
+    """
+    
+    """    
+    Vsys_Voltage=(Vsys.read_u16()*8.01)*(3.3/65535);        
+    
+    if(Vsys_Voltage < 1.8):
+        playsong(Low_Battery)       
+        Charged_Battery=False
+    else:
+        Charged_Battery=True        
+        
+    #if __on_debug__ == 1: print('VSYS: {} V'.format(Vsys_Voltage))
+    return Charged_Battery
 
-"""
-def main():    
+
+def Measure_Water_Level():
+    """
+    
+    """
+    
+    Enough_Water = Water_Level.value()
+    #if not  Enough_Water:
+        #playsong(Low_Water_Level)
+    return Enough_Water
+      
+
+def main():
+    """
+
+    """
     global Pump
     global Shower_Time
     
-    tim.init(freq=4, mode=Timer.PERIODIC, callback=tick)
+    tim.init(freq=1, mode=Timer.PERIODIC, callback=tick)
         
     
     Pump.off()
-    print("Regador automático")
-    playsong(Start_song)
-    
+    #if __on_debug__ == 1: ("Regador automático")
+    #playsong(Start_song)
+            
     while True:
-        Vsys_Voltage=(Vsys.read_u16()*3)*(3.3/65535);
-        print(Vsys_Voltage)
+        Battery_Status=Voltage_System_Measurement()
+        Water_Level_is_Ok=Measure_Water_Level()
+        
         value_written = humidity_sensor.read_u16();
-        percent_humidity = 100-((value_written  / 65535)*100)
-        print('% Humidity: {}%'.format(percent_humidity))        
+        percent_humidity = 100-((value_written  / 65535)*100)        
+        if __on_debug__ == 1: print('Humidity(%){}'.format(percent_humidity)) 
+                
+        if Battery_Status: #and Water_Level_is_Ok:        
         
-        if percent_humidity < Humidity_Low_Threshold:
-            Shower_Time=1
-        elif percent_humidity > Humidity_High_Threshold:
-            Shower_Time=0
+            if percent_humidity < HUMIDITY_LOW_THRESHOLD:
+                Shower_Time=True
+            elif percent_humidity > HUMIDITY_HIGH_THRESHOLD:
+                Shower_Time=False
         
-        if Shower_Time==1:
-            print("ON")
-            Pump.on()
-            sleep(10)
-            Pump.off()
-            Shower_Time=0
-        sleep(10)
-
+            if Shower_Time==True:
+                Pump.on()
+                sleep(10)
+                Pump.off()
+                Shower_Time=0        
+        sleep(60)
 
 if __name__ == '__main__':
     main()
