@@ -8,19 +8,22 @@ from utime import sleep
 from machine import Timer
 import time
 
-tim         = Timer()
-PWR_led      = Pin(25, Pin.OUT)
 __on_debug__ = True
 
-HUMIDITY_LOW_THRESHOLD =50
-HUMIDITY_HIGH_THRESHOLD=60
+PWR_led = Pin(25, Pin.OUT)    #Heart LED
+humidity_sensor = ADC(26)     #ADC0  
+buzzer = PWM(Pin(16))         #Buzzer
+Vsys = ADC(3)                 #Measure power supply
+Pump = Pin(12, Pin.OUT)       #Pump water
+#Water_Level = ADC(27)        #ADC1 TO-DO!!!  
+Water_Level = Pin(19, Pin.IN) #Level water sensor
+tim = Timer()                 #Internal timer
 
-humidity_sensor=ADC(26) #ADC0  
-buzzer=PWM(Pin(16))     #Buzzer
-Vsys=ADC(3)             #Measure power supply
-Pump=Pin(12, Pin.OUT)   #Pump water
-Shower_Time=False
-Water_Level=Pin(19, Pin.IN)
+HUMIDITY_LOW_THRESHOLD =70
+HUMIDITY_HIGH_THRESHOLD=75
+MINUTES_AMONG_SENSORING=30
+
+Shower_Time = True
 
 tones = {
 "B0": 31,
@@ -166,7 +169,7 @@ def Voltage_System_Measurement():
     else:
         Charged_Battery=True        
         
-    #if __on_debug__ == 1: print('VSYS: {} V'.format(Vsys_Voltage))
+    if __on_debug__ == True: print('VSYS: {} V'.format(Vsys_Voltage))
     return Charged_Battery
 
 
@@ -192,7 +195,7 @@ def main():
         
     
     Pump.off()
-    #if __on_debug__ == 1: ("Regador automático")
+    if __on_debug__ == True: ("Regador automático")
     #playsong(Start_song)
             
     while True:
@@ -201,7 +204,7 @@ def main():
         
         value_written = humidity_sensor.read_u16();
         percent_humidity = 100-((value_written  / 65535)*100)        
-        if __on_debug__ == 1: print('Humidity(%){}'.format(percent_humidity)) 
+        if __on_debug__ == True: print('Humidity(%){}'.format(percent_humidity)) 
                 
         if Battery_Status: #and Water_Level_is_Ok:        
         
@@ -215,13 +218,11 @@ def main():
                 sleep(10)
                 Pump.off()
                 Shower_Time=0        
-        sleep(60)
+        
+        if __on_debug__ == True: print(f"Pump status: {Shower_Time}")
+        sleep(60*MINUTES_AMONG_SENSORING) #Wait until next sensoring
 
 if __name__ == '__main__':
     main()
     
-    
-    
-    
-    
-    
+#END-OF-FILE    
