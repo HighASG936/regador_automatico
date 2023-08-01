@@ -1,6 +1,4 @@
 
-from machine import Pin, PWM
-
 tones = { 
     "B0": 31,
     "C1": 33,
@@ -93,4 +91,3 @@ tones = {
     "DS8": 4978,
     }
 
-buzzer_pin=PWM(Pin(16))

@@ -1,5 +1,5 @@
 """
-Name: buzzer_tunes.py
+Name: main.py
 Author: Aurelio Siordia
 Last Mod.: 30/07/23
 """
@@ -12,28 +12,32 @@ from automatic_waterer.automatic_waterer import AutomaticWaterer as aw
 from water_level.sensor import Sensor as wl
 from buzzer.buzzer_tunes import BuzzerTune
 from buzzer.songs import smoke_on_the_water as smoke
+from time import sleep
 
 class MainClass:
+    """Main App"""
 
     def __init__(self):
         global spLock
         global is_charged
         global pwr_led
         global vm
-        
+
+        buzzerpin = 16
+        self.bt = BuzzerTune(buzzerpin)        
+
         spLock = _thread.allocate_lock()        
         is_charged = True        
         PWR_PIN = 25
         pwr_led = Pin(PWR_PIN, Pin.OUT)      
-        vm = VoltageMonitoring(self)  
-    
-        self.bt = BuzzerTune()        
-        
-        tim = Timer()
-        tim.init(freq=4, mode=Timer.PERIODIC, callback=self._tick)
+        vm = VoltageMonitoring(self)     
+
+        self.tim = Timer()
+        self.tim.init(freq=4, mode=Timer.PERIODIC, callback=self._tick())
+
 
     @staticmethod
-    def _tick(timer):
+    def _tick():
         """Set up toggle led."""
         pwr_led.toggle()
 
@@ -49,7 +53,9 @@ class MainClass:
 
         while True:
             spLock.acquire()
-            is_charged = vm.run
+            print("vl")
+            sleep(2)
+            is_charged = vm.run            
             spLock.release()
     
 
@@ -62,21 +68,23 @@ class MainClass:
         global spLock
         global is_charged
 
-        while True:
+        while True:            
+            print("aw")
             spLock.acquire()
             if is_charged and wl.is_enough_water:
-                aw.run         
-            utime.sleep(0.5)
-            spLock.acquire()
+                aw.run       
+            spLock.release()
+            sleep(3)
 
 
     def run(self):
         """
-        
+        Run application
         """
-        self.bt.play_song(smoke)
-        _thread.start_new_thread(self._task_vsys_level, ())
-        #self._task_automatic_waterer
+        self.tim.deinit()
+        #self.bt.play_song(smoke)
+        #_thread.start_new_thread(self._task_vsys_level, ())
+        self._task_automatic_waterer()
 
 if __name__ == '__main__':  
     main = MainClass()

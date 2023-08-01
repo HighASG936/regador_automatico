@@ -12,8 +12,7 @@ class VoltageMonitoring:
         global vsys_adc
         
         super().__init__()
-        self.bt = App.bt
-        
+        self.bt = App.bt        
         VSYS_PIN = 3
         vsys_adc = ADC(VSYS_PIN)
 

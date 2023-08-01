@@ -7,16 +7,19 @@ from automatic_waterer import pump_gpio, DELAY
 from time import sleep
 
 class Pump:
+    """Manage the pump behavior"""
 
     @staticmethod
-    def _set_pump(self, status):
-        """Set if pump will be turn on or turn off"""        
+    def _set_pump(status):
+        """Set pump state"""        
         pump_gpio.value(status) 
 
     def turn_on(self):
-        self.set_pump(True)
+        """Turn on the pump for some seconds and then turn it back off"""
+        self._set_pump(True)
         sleep(DELAY)
-        self.set_pump(False)
+        self._set_pump(False)
 
     def turn_off(self):
-        self.set_pump(False)
+        """Keep turn the pump off"""
+        self._set_pump(False)
